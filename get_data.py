@@ -5,8 +5,8 @@ import json
 import logging
 import time
 
-client_id = "313f33c5a29a4408bd001930d745b5c4"
-client_secret = "168f1767e63e41739292f56413c42c19"
+client_id = ""
+client_secret = ""
 
 def main() :
     headers = get_headers(client_id, client_secret)
