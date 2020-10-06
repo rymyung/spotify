@@ -5,7 +5,7 @@ import json
 import logging
 import time
 
-client_id = "313f33c5a29a4408bd001930d745b5c4a"
+client_id = "313f33c5a29a4408bd001930d745b5c4"
 client_secret = "168f1767e63e41739292f56413c42c19"
 
 def main() :
@@ -37,7 +37,32 @@ def main() :
         else :
             sys.exit(1)
 
+    # GET BTS' Albums
 
+    r = requests.get("https://api.spotify.com/v1/artists/3Nrfpe0tUJi4K4DXYWgMUX/albums", headers = headers)
+
+    raw = json.loads(r.text)
+
+    total = raw['total']
+    offset = raw['offset']
+    limit = raw['limit']
+    next = raw['next']
+
+    albums = []
+    albums.extend(raw['items'])
+
+    count = 0
+    while count < 100 and next :
+        r = requests.get(raw['next'], headers = headers)
+        raw = json.loads(r.text)
+        next = raw['next']
+        print(next)
+        albums.extend(raw['items'])
+        count = len(albums)
+
+    print(albums[0])
+    print(len(albums))
+    sys.exit(0)
 
 
 
