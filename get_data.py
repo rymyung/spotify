@@ -1,24 +1,50 @@
+
 import sys
 import requests
 import base64
 import json
 import logging
 import time
+import pymysql
 
+# Spotify API Info
 client_id = ""
 client_secret = ""
 
+# AWS MySQL Info
+host = ""
+port = ""
+username = ""
+database = ""
+password = ""
+
+
 def main() :
+
+    # Connect to AWS MySQL
+    try :
+        conn = pymysql.connect(host, user=username, passwd=password, db=database, port=port, use_unicode=True, charset='utf8')
+        cursor = conn.cursor()
+
+    except :
+        logging.error("could not connect to MySQL")
+        sys.exit(1)
+
+    cursor.execute("SHOW TABLES")
+    print(cursor.fetchall())
+
+
+    # Get header
     headers = get_headers(client_id, client_secret)
 
-    ## Spotify Search API
+    # Spotify Search API
     params = {
         "q" : "BTS",
         "type" : "artist",
         "limit" : "5"
     }
 
-    r = requests.get("https://api.spotify.com/v1/search", params = params, headers = headers)
+    r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
 
     if r.status_code != 200 :
         logging.error(r.text)
@@ -39,7 +65,7 @@ def main() :
 
     # GET BTS' Albums
 
-    r = requests.get("https://api.spotify.com/v1/artists/3Nrfpe0tUJi4K4DXYWgMUX/albums", headers = headers)
+    r = requests.get("https://api.spotify.com/v1/artists/3Nrfpe0tUJi4K4DXYWgMUX/albums", headers=headers)
 
     raw = json.loads(r.text)
 
@@ -53,7 +79,7 @@ def main() :
 
     count = 0
     while count < 100 and next :
-        r = requests.get(raw['next'], headers = headers)
+        r = requests.get(raw['next'], headers=headers)
         raw = json.loads(r.text)
         next = raw['next']
         print(next)
