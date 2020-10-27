@@ -6,17 +6,18 @@ import json
 import logging
 import time
 import pymysql
+import csv
 
 # Spotify API Info
-client_id = ""
-client_secret = ""
+client_id = "313f33c5a29a4408bd001930d745b5c4"
+client_secret = "168f1767e63e41739292f56413c42c19"
 
 # AWS MySQL Info
-host = ""
-port = ""
-username = ""
-database = ""
-password = ""
+host = "spotify.cialxhlcrgzf.ap-northeast-2.rds.amazonaws.com"
+port = 3306
+username = "rymyung"
+database = "production"
+password = "du915aud"
 
 
 def main() :
@@ -30,68 +31,70 @@ def main() :
         logging.error("could not connect to MySQL")
         sys.exit(1)
 
-    cursor.execute("SHOW TABLES")
-    print(cursor.fetchall())
-
 
     # Get header
     headers = get_headers(client_id, client_secret)
 
     # Spotify Search API
-    params = {
-        "q" : "BTS",
-        "type" : "artist",
-        "limit" : "5"
-    }
+    artists = []
+    with open('artist_list.csv', encoding='utf8') as f:
+        raw = csv.reader(f)
+        for row in raw:
+            artists.append(row[0].strip())
 
-    r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
+    for a in artists:
 
-    if r.status_code != 200 :
+        params = {
+            'q': a,
+            'type': 'artist',
+            'limit': '1'
+        }
+
+        r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
+        raw = json.loads(r.text)
+
+        artist = {}
+        try:
+            artist_raw = raw['artists']['items'][0]
+            if artist_raw['name'] == params['q']:
+                artist.update(
+                    {
+                        'id': artist_raw['id'],
+                        'name': artist_raw['name'],
+                        'popularity': artist_raw['popularity'],
+                        'url': artist_raw['external_urls']['spotify'],
+                        'image_url': artist_raw['images'][0]['url'],
+                        'followers': artist_raw['followers']['total']
+                    }
+                )
+            insert_row(cursor, artist, 'artists')
+
+        except:
+            logging.error('No items from search API')
+            continue
+
+    conn.commit()
+    sys.exit(0)
+
+
+
+
+    if r.status_code != 200:
         logging.error(r.text)
 
-        if r.status_code == 429 :
+        if r.status_code == 429:
             retry_after = json.loads(r.headers)['Retry-After']
             time.sleep(int(retry_after))
 
             r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
 
         # access_token expired
-        elif r.status_code == 401 :
+        elif r.status_code == 401:
             headers = get_headers(client_id, client_secret)
             r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
 
-        else :
+        else:
             sys.exit(1)
-
-    # GET BTS' Albums
-
-    r = requests.get("https://api.spotify.com/v1/artists/3Nrfpe0tUJi4K4DXYWgMUX/albums", headers=headers)
-
-    raw = json.loads(r.text)
-
-    total = raw['total']
-    offset = raw['offset']
-    limit = raw['limit']
-    next = raw['next']
-
-    albums = []
-    albums.extend(raw['items'])
-
-    count = 0
-    while count < 100 and next :
-        r = requests.get(raw['next'], headers=headers)
-        raw = json.loads(r.text)
-        next = raw['next']
-        print(next)
-        albums.extend(raw['items'])
-        count = len(albums)
-
-    print(albums[0])
-    print(len(albums))
-    sys.exit(0)
-
-
-
 
 def get_headers(client_id, client_secret):
 
@@ -117,7 +120,13 @@ def get_headers(client_id, client_secret):
     return headers
 
 
+def insert_row(cursor, data, table):
 
+    placeholders = ', '.join(['%s'] * len(data))
+    columns = ', '.join(data.keys())
+    key_placeholders = ', '.join(['{0}=%s'.format(k) for k in data.keys()])
+    sql = "INSERT INTO %s ( %s ) VALUES ( %s ) ON DUPLICATE KEY UPDATE %s" % (table, columns, placeholders, key_placeholders)
+    cursor.execute(sql, list(data.values())*2)
 
 
 
