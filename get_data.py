@@ -36,65 +36,41 @@ def main() :
     headers = get_headers(client_id, client_secret)
 
     # Spotify Search API
+
+    cursor.execute("SELECT id FROM artists")
     artists = []
-    with open('artist_list.csv', encoding='utf8') as f:
-        raw = csv.reader(f)
-        for row in raw:
-            artists.append(row[0].strip())
+    for (id, ) in cursor.fetchall():
+        artists.append(id)
 
-    for a in artists:
+    artist_batch = [artists[i: i+50] for i in range(0, len(artists), 50)]
 
-        params = {
-            'q': a,
-            'type': 'artist',
-            'limit': '1'
-        }
+    artist_genres = []
 
-        r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
+    for i in artist_batch:
+        ids = ','.join(i)
+        url = 'https://api.spotify.com/v1/artists/?ids={}'.format(ids)
+
+        r = requests.get(url, headers=headers)
         raw = json.loads(r.text)
 
-        artist = {}
-        try:
-            artist_raw = raw['artists']['items'][0]
-            if artist_raw['name'] == params['q']:
-                artist.update(
+        for artist in raw['artists']:
+
+            for genre in artist['genres']:
+                artist_genres.append(
                     {
-                        'id': artist_raw['id'],
-                        'name': artist_raw['name'],
-                        'popularity': artist_raw['popularity'],
-                        'url': artist_raw['external_urls']['spotify'],
-                        'image_url': artist_raw['images'][0]['url'],
-                        'followers': artist_raw['followers']['total']
+                        'artist_id':artist['id'],
+                        'genre':genre
                     }
                 )
-            insert_row(cursor, artist, 'artists')
 
-        except:
-            logging.error('No items from search API')
-            continue
+    for data in artist_genres:
+        insert_row(cursor, data, 'artist_genres')
 
     conn.commit()
     sys.exit(0)
 
 
 
-
-    if r.status_code != 200:
-        logging.error(r.text)
-
-        if r.status_code == 429:
-            retry_after = json.loads(r.headers)['Retry-After']
-            time.sleep(int(retry_after))
-
-            r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
-
-        # access_token expired
-        elif r.status_code == 401:
-            headers = get_headers(client_id, client_secret)
-            r = requests.get("https://api.spotify.com/v1/search", params=params, headers=headers)
-
-        else:
-            sys.exit(1)
 
 def get_headers(client_id, client_secret):
 
