@@ -9,8 +9,8 @@ import pymysql
 import csv
 
 # Spotify API Info
-client_id = "313f33c5a29a4408bd001930d745b5c4"
-client_secret = "168f1767e63e41739292f56413c42c19"
+client_id = ""
+client_secret = ""
 
 # AWS MySQL Info
 host = "spotify.cialxhlcrgzf.ap-northeast-2.rds.amazonaws.com"
