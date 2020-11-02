@@ -17,7 +17,7 @@ host = "spotify.cialxhlcrgzf.ap-northeast-2.rds.amazonaws.com"
 port = 3306
 username = "rymyung"
 database = "production"
-password = "du915aud"
+password = ""
 
 
 def main() :
