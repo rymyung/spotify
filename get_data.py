@@ -13,10 +13,10 @@ client_id = ""
 client_secret = ""
 
 # AWS MySQL Info
-host = "spotify.cialxhlcrgzf.ap-northeast-2.rds.amazonaws.com"
-port = 3306
-username = "rymyung"
-database = "production"
+host = ""
+port = 
+username = ""
+database = ""
 password = ""
 
 
